@@ -1,4 +1,7 @@
-import random, sqlite3
+import random, _sqlite3
+import \
+    sqlite3
+
 
 def get_user_name():
     userName = input("Name: ")
@@ -60,6 +63,8 @@ def database_save(name, difficulty, score):
     cur.execute("INSERT INTO scores (name, difficulty, score) VALUES (?, ?, ?)", (name, difficulty, score))
     con.commit()
 
+
+
 def main():
     name = get_user_name()
     while True:
@@ -84,5 +89,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
