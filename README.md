@@ -1,1 +1,1 @@
-# Programming-Assignment-Maths-Quiz
+# Programming Assignment Math's Quiz
