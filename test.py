@@ -1,7 +1,4 @@
-import random, _sqlite3
-import \
-    sqlite3
-
+import random, sqlite3
 
 def get_user_name():
     userName = input("Name: ")
@@ -62,7 +59,8 @@ def database_save(name, difficulty, score):
                     (name text, difficulty text, score real)''')
     cur.execute("INSERT INTO scores (name, difficulty, score) VALUES (?, ?, ?)", (name, difficulty, score))
     con.commit()
-
+    for row in cur.execute("SELECT * FROM scores"):
+        print(row)
 
 
 def main():
