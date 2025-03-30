@@ -1,162 +1,110 @@
-import random, sqlite3
+import random, sqlite3, json
 
-def get_user_name():
-    userName = input("Name: ")
-    return userName
+def load_rules(): # Opens or Creates rules.json depending if files exists
+    try:
+        with open("rules.json", "r") as file:
+            return json.load(file)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {
+            "easy": {"min": 1, "max": 10, "add": 5, "sub": 3, "mul": 2, "lives": 3},
+            "medium": {"min": 2, "max": 15, "add": 4, "sub": 3, "mul": 3, "lives": 2},
+            "hard": {"min": 3, "max": 20, "add": 3, "sub": 3, "mul": 4, "lives": 2}
+        }
 
-def database():
+def save_rules(rules): # if rules are edited save to JSON
+    with open("rules.json", "w") as file:
+        json.dump(rules, file, indent=4)
+
+def database_setup(): # Creates data.db for scores
     con = sqlite3.connect("data.db")
     cur = con.cursor()
+    cur.execute("""CREATE TABLE IF NOT EXISTS scores (name TEXT, difficulty TEXT, score INTEGER)""")
+    con.commit()
+    con.close()
 
-    while True:
-        # Prompt user to choose an option
-        userInput = input("1. Search Scores\n2. Print All Scores\n3. Add a Score\n4. Delete a Score\n5. Update a Score\n6. Exit\nChoose an option: ").strip()
-
-        if userInput == "1":
-            # Ask for a name to search
-            name_to_search = input("Enter name to search for: ").strip()
-
-            # Execute the query with the provided name
-            results = cur.execute("SELECT * FROM scores WHERE name = ?", (name_to_search,)).fetchall()
-            if results:
-                for row in results:
-                    print(f"Name: {row[0]}, Difficulty: {row[1]}, Score: {row[2]}")
-            else:
-                print("No scores found for that name.")
-
-        elif userInput == "2":
-            # Print all scores
-            results = cur.execute("SELECT * FROM scores").fetchall()
-            if results:
-                for row in results:
-                    print(f"Name: {row[0]}, Difficulty: {row[1]}, Score: {row[2]}")
-            else:
-                print("No scores available.")
-
-        elif userInput == "3":
-            # Add a new score
-            name = input("Enter name: ").strip()
-            difficulty = input("Enter difficulty (easy, medium, hard): ").strip()
-            score = input("Enter score: ").strip()
-
-            try:
-                score = float(score)
-                cur.execute("INSERT INTO scores (name, difficulty, score) VALUES (?, ?, ?)", (name, difficulty, score))
-                con.commit()
-                print("Score added successfully!")
-            except ValueError:
-                print("Invalid score. Please enter a valid number.")
-
-        elif userInput == "4":
-            # Delete a score
-            name_to_delete = input("Enter the name of the score to delete: ").strip()
-            cur.execute("DELETE FROM scores WHERE name = ?", (name_to_delete,))
-            con.commit()
-            print(f"Score(s) for {name_to_delete} deleted.")
-
-        elif userInput == "5":
-            # Update a score
-            name_to_update = input("Enter the name of the score to update: ").strip()
-            new_score = input("Enter the new score: ").strip()
-
-            try:
-                new_score = float(new_score)
-                cur.execute("UPDATE scores SET score = ? WHERE name = ?", (new_score, name_to_update))
-                con.commit()
-                print(f"Score for {name_to_update} updated.")
-            except ValueError:
-                print("Invalid score. Please enter a valid number.")
-
-        elif userInput == "6":
-            # Exit the program
-            print("Exiting the program...")
-            break
-
-        else:
-            print("Invalid option. Please choose a valid option.")
-def database_save(name, difficulty, score):
-    con = sqlite3.connect(
-        "data.db")
+def save_score(name, difficulty, score): # when user finishes quiz save username difficulty and score
+    con = sqlite3.connect("data.db")
     cur = con.cursor()
-    cur.execute('''CREATE TABLE IF NOT EXISTS scores
-                    (name text, difficulty text, score real)''')
     cur.execute("INSERT INTO scores (name, difficulty, score) VALUES (?, ?, ?)", (name, difficulty, score))
     con.commit()
-    for row in cur.execute("SELECT * FROM scores"):
-        print(row)
+    con.close()
 
-def easy():
-    operations = ["+"] * 5 + ["-"] * 3 + ["*"] * 2
-    lives = 3
-    return question_generator(1, 10, operations, lives)
-def medium():
-    operations = ["+"] * 4 + ["-"] * 3 + ["*"] * 3
-    lives = 2
-    return question_generator(2, 15, operations, lives)
-def hard():
-    operations = ["+"] * 3 + ["-"] * 3 + ["*"] * 4
-    lives = 2
-    return question_generator(3, 20, operations, lives)
+def view_scores(): # prints the contents of the Database
+    con = sqlite3.connect("data.db")
+    cur = con.cursor()
+    results = cur.execute("SELECT * FROM scores").fetchall()
+    con.close()
+    return results
 
-def question_generator(min_val, max_val, operations, lives):
-    num1 = random.randint(
-        min_val,
-        max_val)
-    num2 = random.randint(
-        min_val,
-        max_val)
-    operation = random.choice(
-        operations)
+def edit_rules(rules): # handles JSON editing
+    difficulty = input("Enter difficulty to modify (easy, medium, hard): ").strip().lower()
+    if difficulty in rules:
+        for key in rules[difficulty]:
+            new_value = input(f"Enter new value for {key} (current: {rules[difficulty][key]}): ").strip()
+            if new_value.isdigit():
+                rules[difficulty][key] = int(new_value)
+        save_rules(rules)
+        print("Rules updated!")
+    else:
+        print("Invalid difficulty.")
+
+def question_generator(rules, difficulty): # generates questions depending on Difficulty
+    settings = rules[difficulty]
+    operations = ["+"] * settings["add"] + ["-"] * settings["sub"] + ["*"] * settings["mul"]
+    num1, num2 = random.randint(settings["min"], settings["max"]), random.randint(settings["min"], settings["max"])
+    operation = random.choice(operations)
     if operation == "-":
-        num1, num2 = max(num1, num2), min(num1, num2)  # Avoid negative answers
+        num1, num2 = max(num1, num2), min(num1, num2)
+    return num1, num2, operation, eval(f"{num1} {operation} {num2}"), settings["lives"]
 
-    programAns = eval(f"{num1} {operation} {num2}")
-    return num1, num2, operation, programAns, lives
-def question_check(num1, num2, operation,programAns, lives):
+def question_check(num1, num2, operation, correct_ans, lives): # takes in user input and checks it with correct answer
     attempts = lives
     while attempts > 0:
         try:
-            userAns = int(input(f"{num1} {operation} {num2} = "))
-            if userAns == programAns:
+            user_ans = int(input(f"{num1} {operation} {num2} = "))
+            if user_ans == correct_ans:
                 print("Correct!")
                 return 1
             else:
                 attempts -= 1
-                if attempts > 0:
-                    print(f"Wrong! Try again. {attempts} attempts left.")
-                else:
-                    print(f"Wrong! The correct answer was {programAns}. Moving to the next question.")
+                print(f"Wrong! {attempts} attempts left.")
         except ValueError:
-            print("Invalid input. Please enter a number.")
+            print("Invalid input. Enter a number.")
             attempts -= 1
+    print(f"Out of attempts! The correct answer was {correct_ans}.")
     return 0
 
-
 def main():
-    name = get_user_name()
+    database_setup()
+    rules = load_rules()
+    name = input("Enter your name: ").strip()
     while True:
-        while True:
-            admin = input("Start or Admin?").strip().lower()
-            if admin == "admin":
-                database()
-            else:
+        mode = input("Start Quiz or Admin Mode? ").strip().lower()
+        if mode == "admin":
+            admin_choice = input("1. View Scores 2. Edit Rules 3. Exit Admin: ").strip()
+            if admin_choice == "1":
+                for row in view_scores():
+                    print(f"{row[0]} - {row[1]} - Score: {row[2]}")
+            elif admin_choice == "2":
+                edit_rules(rules)
+            elif admin_choice == "3":
                 break
-        score = 0
-        difficulty = input(f"Welcome {name}, Choose difficulty (easy, medium, hard): ").strip().lower()
-        difficulty_functions = {
-            "easy": easy,
-            "medium": medium,
-            "hard": hard,
-        }
-        for i in range(10):  # 10 questions
-            num1, num2, operation, programAns, lives = difficulty_functions[difficulty]()
-            score += question_check(num1, num2, operation, programAns, lives)
-
-        print(f"\nFinal Score: {score}/10")  # Display final score
-        database_save(name, difficulty, score)
-        play_again = input(
-            "Do you want to play again? (yes/no): ").strip().lower()
-        if play_again != "yes":
+            else:
+                print("Invalid choice.")
+        else:
             break
+    score = 0
+    difficulty = input("Choose difficulty (easy, medium, hard): ").strip().lower()
+    if difficulty not in rules:
+        print("Invalid difficulty. Exiting...")
+        return
+    for _ in range(10):
+        num1, num2, operation, correct_ans, lives = question_generator(rules, difficulty)
+        score += question_check(num1, num2, operation, correct_ans, lives)
+    print(f"Final Score: {score}/10")
+    save_score(name, difficulty, score)
+    if input("Play again? (yes/no): ").strip().lower() != "yes":
+        exit()
+
 if __name__ == "__main__":
     main()

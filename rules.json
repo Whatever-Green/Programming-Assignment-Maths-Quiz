@@ -1,0 +1,26 @@
+{
+    "easy": {
+        "min": 1,
+        "max": 10,
+        "add": 5,
+        "sub": 3,
+        "mul": 2,
+        "lives": 3
+    },
+    "medium": {
+        "min": 2,
+        "max": 15,
+        "add": 4,
+        "sub": 3,
+        "mul": 3,
+        "lives": 2
+    },
+    "hard": {
+        "min": 3,
+        "max": 20,
+        "add": 3,
+        "sub": 3,
+        "mul": 4,
+        "lives": 2
+    }
+}
