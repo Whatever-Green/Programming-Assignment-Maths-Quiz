@@ -20,10 +20,11 @@ A Python application that allows pupils to practice arithmetic questions and ena
 Clone the repository:
 
 ```bash
-git clone https://github.com/yourusername/maths-quiz.git
-cd maths-quiz
+git clone https://github.com/Whatever-Green/Programming-Assignment-Maths-Quiz
+cd Programming-Assignment-Maths-Quiz
 
 ```
+[ZIP file](https://github.com/Whatever-Green/Programming-Assignment-Maths-Quiz/archive/refs/heads/main.zip)
 
 Ensure Python 3 is installed.
 
